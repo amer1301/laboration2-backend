@@ -78,6 +78,41 @@ app.post("/api/workexperience", (req, res) => {
     });
 });
 
+// PUT - Uppdatera en arbetserfarenhet
+app.put("/api/workexperience/:id", (req, res) => {
+    const { companyname, jobtitle, location, startdate, enddate, description } = req.body;
+    const id = req.params.id;
+
+    if (!companyname || !jobtitle || !location || !startdate) {
+        return res.status(400).json({
+            error: "Missing required fields for update"
+        });
+    }
+
+    const sql = `UPDATE workexperience SET companyname = ?, jobtitle = ?, location = ?, startdate = ?, enddate = ?, description = ? WHERE id = ?`;
+
+    connection.query(sql, [companyname, jobtitle, location, startdate, enddate, description, id], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: "Database error: " + err });
+        }
+
+        res.json({ message: "Work experience updated" });
+    });
+});
+
+// DELETE - Ta bort en arbetserfarenhet
+app.delete("/api/workexperience/:id", (req, res) => {
+    const id = req.params.id;
+
+    connection.query("DELETE FROM workexperience WHERE id = ?", [id], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: "Database error: " + err });
+        }
+
+        res.json({ message: `Work experience with id ${id} deleted` });
+    });
+});
+
 // Start the server
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
