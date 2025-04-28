@@ -2,36 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Test API</title>
 </head>
 <body>
-    <h1>Sida för att testa vårt express API</h1>
+    <h1>Arbetserfarenhet</h1>
+    <ul id="work-list"></ul>
 
     <script>
-        let url = "http://127.0.0.1:3000/api/workexperience";
-        getData();
-        async function createWork(companyname, jobtitle, location, startdate, enddate, description) {
-    let work = {
-        companyname,
-        jobtitle,
-        location,
-        startdate,
-        enddate,
-        description
-    };
-
-    const response = await fetch(url, {
-        method: "POST",
-        headers: {
-            "content-type": "application/json"
-        },
-        body: JSON.stringify(work)
-    });
-
-    const data = await response.json();
-    console.log(data);
-}
+        // Hämta data från API
+        fetch('http://localhost:3000/api/workexperience')
+            .then(response => response.json())
+            .then(data => {
+                const list = document.getElementById('work-list');
+                data.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = `${item.companyname} - ${item.jobtitle}`;
+                    list.appendChild(li);
+                });
+            })
+            .catch(error => console.error('Fel vid hämtning:', error));
     </script>
 </body>
 </html>

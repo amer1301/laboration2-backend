@@ -1,119 +1,72 @@
 const express = require('express');
 const cors = require("cors");
-const mysql = require("mysql");
-require('dotenv').config();
+const mongoose = require("mongoose");
+const WorkExperience = require("./models/WorkExperience");
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());  // Viktigt att använda express.json() för att kunna läsa JSON i POST-anrop
+app.use(express.json());
 
-// Connect to database
-const connection = mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_DATABASE
+// Connect to MongoDB
+mongoose.connect("mongodb://127.0.0.1:27017/workexperience")
+    .then(() => console.log("Connected to MongoDB"))
+    .catch((error) => console.log("Error connecting to database: " + error));
+
+// Welcome route
+app.get("/api", (req, res) => {
+    res.json({ message: "Welcome to the Work Experience API!" });
 });
 
-connection.connect((err) => {
-    if (err) {
-        console.log("Connection failed: " + err);
-        return;
+// GET – Hämta alla arbetserfarenheter
+app.get("/api/workexperience", async (req, res) => {
+    try {
+        const result = await WorkExperience.find();
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
-    console.log("Connected to database");
 });
 
-// Root route (för /)
-app.get("/", (req, res) => {
-    res.send("Welcome to the Work Experience API!");
-});
-
-// Route för /api/workexperience (GET)
-app.get("/api/workexperience", (req, res) => {
-    connection.query("SELECT * FROM workexperience", (err, results) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
+// POST – Skapa ny arbetserfarenhet
+app.post("/api/workexperience", async (req, res) => {
+    try {
+        const { companyname, jobtitle, location, startdate } = req.body;
+        if (!companyname || !jobtitle || !location || !startdate) {
+            return res.status(400).json({ message: "Missing required fields." });
         }
-        res.json(results);
-    });
-});
 
-// Route för att lägga till ny arbetserfarenhet (POST)
-app.post("/api/workexperience", (req, res) => {
-    const { companyname, jobtitle, location, startdate, enddate, description } = req.body;
-
-    // Kontrollera att alla fält är fyllda
-    if (!companyname || !jobtitle || !location || !startdate || !description) {
-        return res.status(400).json({
-            message: "All fields except 'enddate' must be provided."
-        });
+        const newExperience = await WorkExperience.create(req.body);
+        res.status(201).json(newExperience);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
     }
-
-    // SQL-fråga för att lägga till ny arbetserfarenhet
-    const query = `
-        INSERT INTO workexperience (companyname, jobtitle, location, startdate, enddate, description)
-        VALUES (?, ?, ?, ?, ?, ?)
-    `;
-
-    // Kör frågan med värdena från body
-    connection.query(query, [companyname, jobtitle, location, startdate, enddate, description], (err, results) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-
-        // Skicka tillbaka ett meddelande om att datan har lagts till
-        res.status(201).json({
-            message: "Work experience added successfully",
-            workexperience: {
-                companyname,
-                jobtitle,
-                location,
-                startdate,
-                enddate,
-                description
-            }
-        });
-    });
 });
 
-// PUT - Uppdatera en arbetserfarenhet
-app.put("/api/workexperience/:id", (req, res) => {
-    const { companyname, jobtitle, location, startdate, enddate, description } = req.body;
-    const id = req.params.id;
-
-    if (!companyname || !jobtitle || !location || !startdate) {
-        return res.status(400).json({
-            error: "Missing required fields for update"
-        });
+// PUT – Uppdatera en arbetserfarenhet
+app.put("/api/workexperience/:id", async (req, res) => {
+    try {
+        const updated = await WorkExperience.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!updated) return res.status(404).json({ message: "Work experience not found." });
+        res.json(updated);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
     }
-
-    const sql = `UPDATE workexperience SET companyname = ?, jobtitle = ?, location = ?, startdate = ?, enddate = ?, description = ? WHERE id = ?`;
-
-    connection.query(sql, [companyname, jobtitle, location, startdate, enddate, description, id], (err, result) => {
-        if (err) {
-            return res.status(500).json({ error: "Database error: " + err });
-        }
-
-        res.json({ message: "Work experience updated" });
-    });
 });
 
-// DELETE - Ta bort en arbetserfarenhet
-app.delete("/api/workexperience/:id", (req, res) => {
-    const id = req.params.id;
-
-    connection.query("DELETE FROM workexperience WHERE id = ?", [id], (err, result) => {
-        if (err) {
-            return res.status(500).json({ error: "Database error: " + err });
-        }
-
-        res.json({ message: `Work experience with id ${id} deleted` });
-    });
+// DELETE – Ta bort en arbetserfarenhet
+app.delete("/api/workexperience/:id", async (req, res) => {
+    try {
+        const deleted = await WorkExperience.findByIdAndDelete(req.params.id);
+        if (!deleted) return res.status(404).json({ message: "Work experience not found." });
+        res.json({ message: "Deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
-// Start the server
+// Start server
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
