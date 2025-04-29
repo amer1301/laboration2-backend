@@ -41,14 +41,3 @@ Content-Type: application/json
   "enddate": "2024-12-31",
   "description": "Arbete med frontend i React."
 }
-
-## 🧩 Datamodell (via Mongoose)
-
-const WorkExperienceSchema = new mongoose.Schema({
-  companyname: { type: String, required: true },
-  jobtitle:    { type: String, required: true },
-  location:    { type: String, required: true },
-  startdate:   { type: Date,   required: true },
-  enddate:     { type: Date },
-  description: { type: String }
-});
